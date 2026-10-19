@@ -9,7 +9,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 CPdhCPUUsage::CPdhCPUUsage()
-    : CPdhQuery(theApp.m_win_version.GetMajorVersion() >= 10 ? _T("\\Processor Information(_Total)\\% Processor Utility") : _T("\\Processor Information(_Total)\\% Processor Time"))
+    // 使用“% Processor Time”（各核心忙时占比）而不是“% Processor Utility”。
+    // 后者按当前频率相对基频加权，在支持睿频或大小核的 CPU 上会远高于任务管理器的显示值，
+    // 常见表现为长期顶到 100%。
+    : CPdhQuery(_T("\\Processor Information(_Total)\\% Processor Time"))
 {
 }
 
