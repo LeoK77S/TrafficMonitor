@@ -1,0 +1,44 @@
+name: Fork Build
+
+on:
+  push:
+    branches:
+      - fix/cpu-usage-hybrid
+  workflow_dispatch:
+
+jobs:
+  build-full-x64:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build full x64 Release
+        run: msbuild TrafficMonitor.sln -p:configuration=Release -p:platform=x64 -p:platformToolset=v143 -m
+
+      - name: Verify CPU counter string in binary
+        shell: pwsh
+        run: |
+          $exe = "Bin/x64/Release/TrafficMonitor.exe"
+          if (-not (Test-Path $exe)) { throw "Build output not found: $exe" }
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $text = [Text.Encoding]::Unicode.GetString($bytes)
+          if ($text -notlike '*\Processor Information(_Total)\% Processor Time*') {
+            throw "Expected % Processor Time counter not found in binary"
+          }
+          if ($text -like '*\Processor Information(_Total)\% Processor Utility*') {
+            throw "Legacy % Processor Utility counter is still present in binary"
+          }
+          Write-Host "CPU counter string verified."
+
+      - name: Upload full x64 Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrafficMonitor-full-x64-Release
+          path: |
+            Bin/x64/Release/TrafficMonitor.exe
+            Bin/x64/Release/*.dll
+            Bin/x64/Release/*.config
